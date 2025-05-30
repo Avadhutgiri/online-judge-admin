@@ -48,7 +48,8 @@ export const adminApi = {
         Cookies.set('adminToken', response.data.token, { 
           expires: 1, // 1 day
           secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict'
+          sameSite: 'Lax',
+          path: '/'
         });
         return response;
       }
