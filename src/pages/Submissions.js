@@ -12,12 +12,12 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
+  Chip,
 } from '@mui/material';
 import { Visibility as VisibilityIcon } from '@mui/icons-material';
 import { adminApi } from '../services/api';
@@ -36,8 +36,10 @@ export default function Submissions() {
 
   const fetchSubmissions = async () => {
     try {
+      setLoading(true);
       const response = await adminApi.getAllSubmissions();
-      setSubmissions(response.data);
+      const submissionsData = response.data.submissions || [];
+      setSubmissions(submissionsData);
     } catch (err) {
       setError('Failed to fetch submissions');
       console.error('Submissions error:', err);
@@ -47,7 +49,7 @@ export default function Submissions() {
   };
 
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'accepted':
         return 'success';
       case 'wrong answer':
@@ -64,8 +66,8 @@ export default function Submissions() {
   };
 
   const handleViewCode = (submission) => {
-    console.log('Selected submission:', submission);
-    setSelectedSubmission(submission);
+    const decodedCode = decodeBase64(submission.code);
+    setSelectedSubmission({ ...submission, code: decodedCode });
     setOpenDialog(true);
   };
 
@@ -95,11 +97,13 @@ export default function Submissions() {
       <Typography variant="h4" gutterBottom>
         Submissions Management
       </Typography>
+
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
           {error}
         </Typography>
       )}
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -196,7 +200,7 @@ export default function Submissions() {
                   fontSize: '14px',
                   lineHeight: '1.5'
                 }}>
-                  {decodeBase64(selectedSubmission.code)}
+                  {selectedSubmission.code}
                 </pre>
               ) : (
                 <Typography color="text.secondary">No code available</Typography>

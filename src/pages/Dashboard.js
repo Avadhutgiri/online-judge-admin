@@ -33,10 +33,10 @@ export default function Dashboard() {
         console.log(submissionsRes.data);
 
         setStats({
-          users: usersRes.data.length,
-          teams: teamsRes.data.length,
-          problems: problemsRes.data.length,
-          submissions: submissionsRes.data.length,
+          users: usersRes.data?.length || 0,
+          teams: teamsRes.data.teams?.length || 0,
+          problems: problemsRes.data.problems?.length || 0,
+          submissions: submissionsRes.data.submissions?.length || 0,
         });
       } catch (err) {
         setError('Failed to fetch dashboard statistics');

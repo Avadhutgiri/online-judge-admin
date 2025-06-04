@@ -14,6 +14,7 @@ import Users from './pages/Users';
 import Teams from './pages/Teams';
 import Problems from './pages/Problems';
 import Submissions from './pages/Submissions';
+import Events from './pages/Events';
 
 // Auth Guard
 const PrivateRoute = ({ children }) => {
@@ -50,6 +51,7 @@ const router = createBrowserRouter(
         <Route path="teams" element={<Teams />} />
         <Route path="problems" element={<Problems />} />
         <Route path="submissions" element={<Submissions />} />
+        <Route path="events" element={<Events />} />
       </Route>
     </Route>
   ),

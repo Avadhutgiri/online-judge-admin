@@ -97,6 +97,16 @@ export const adminApi = {
 
   // Submissions
   getAllSubmissions: (filters) => api.get('/admin/submissions', { params: filters }),
+
+  // Events
+  getAllEvents: () => api.get('users/events'),
+  createEvent: (eventData) => api.post('/admin/event/create', eventData),
+  startEvent: (eventData) => api.post(`/admin/event/start`, {
+    eventId: eventData.eventId,
+    start_time: eventData.start_time,
+    duration_minutes: eventData.duration_minutes
+  }),
+  stopEvent: (eventId) => api.post('/admin/event/end', { eventId }),
 };
 
 export default api; 

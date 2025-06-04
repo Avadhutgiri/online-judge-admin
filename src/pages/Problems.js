@@ -25,7 +25,7 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, Upload as UploadIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, Upload as UploadIcon, Visibility as VisibilityIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { adminApi } from '../services/api';
 import { formatDate } from '../utils/dateUtils';
 import MDEditor from '@uiw/react-md-editor';
@@ -33,6 +33,7 @@ import ReactMarkdown from 'react-markdown';
 
 export default function Problems() {
   const [problems, setProblems] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
@@ -50,9 +51,8 @@ export default function Problems() {
     input_format: '',
     output_format: '',
     constraints: '',
-    // test_case_path: '',
     is_junior: false,
-    event_name: '',
+    event_id: '',
     time_limit: 1000,
     memory_limit: 256,
     samples: [{ input: '', output: '', explanation: '' }],
@@ -63,13 +63,26 @@ export default function Problems() {
 
   useEffect(() => {
     fetchProblems();
+    fetchEvents();
   }, []);
 
+  const fetchEvents = async () => {
+    try {
+      const response = await adminApi.getAllEvents();
+      const eventsData = response.data.events || [];
+      setEvents(eventsData);
+    } catch (err) {
+      console.error('Failed to fetch events:', err);
+    }
+  };
 
   const fetchProblems = async () => {
     try {
+      setLoading(true);
       const response = await adminApi.getAllProblems();
-      setProblems(response.data);
+      // Handle the nested problems array in the response
+      const problemsData = response.data.problems || [];
+      setProblems(problemsData);
     } catch (err) {
       setError('Failed to fetch problems');
       console.error('Problems error:', err);
@@ -95,7 +108,7 @@ export default function Problems() {
           output_format: problemData.output_format,
           constraints: problemData.constraints,
           is_junior: problemData.is_junior,
-          event_name: problemData.event_name,
+          event_id: problemData.event_id,
           time_limit: problemData.time_limit,
           memory_limit: problemData.memory_limit,
           samples: problemData.samples || [{ input: '', output: '', explanation: '' }],
@@ -116,7 +129,7 @@ export default function Problems() {
         output_format: '',
         constraints: '',
         is_junior: false,
-        event_name: '',
+        event_id: '',
         time_limit: 1000,
         memory_limit: 256,
         samples: [{ input: '', output: '', explanation: '' }],
@@ -158,29 +171,56 @@ export default function Problems() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate required fields
+      if (!formData.title || !formData.input_format || !formData.output_format || !formData.event_id) {
+        setError('Missing required fields: Title, Input Format, Output Format, and Event are required');
+        return;
+      }
+
+      // Validate samples array
+      if (!Array.isArray(formData.samples) || formData.samples.length === 0) {
+        setError('At least one sample test case is required');
+        return;
+      }
+
       // Convert form data to proper format
       const problemData = {
-        ...formData,
-        score: parseInt(formData.score),
-        time_limit: parseInt(formData.time_limit),
-        memory_limit: parseInt(formData.memory_limit),
+        title: formData.title,
+        description: formData.description || '',
+        score: parseInt(formData.score) || 0,
+        input_format: formData.input_format,
+        output_format: formData.output_format,
+        constraints: formData.constraints || '',
         is_junior: formData.is_junior === 'true',
+        event_id: formData.event_id,
+        time_limit: parseInt(formData.time_limit) || 1000,
+        memory_limit: parseInt(formData.memory_limit) || 256,
         samples: formData.samples.map(sample => ({
           input: sample.input,
           output: sample.output,
-          explanation: sample.explanation || ''
+          explanation: sample.explanation || null
         }))
       };
 
       if (selectedProblem) {
-        await adminApi.updateProblem(selectedProblem.id, problemData);
+        // Update existing problem
+        const response = await adminApi.updateProblem(selectedProblem.id, problemData);
+        if (response.data.problem) {
+          setProblems(prevProblems => 
+            prevProblems.map(p => p.id === selectedProblem.id ? response.data.problem : p)
+          );
+        }
       } else {
-        await adminApi.addProblem(problemData);
+        // Create new problem
+        const response = await adminApi.addProblem(problemData);
+        if (response.data.problem) {
+          setProblems(prevProblems => [...prevProblems, response.data.problem]);
+        }
       }
-      fetchProblems();
+      
       handleCloseDialog();
     } catch (err) {
-      setError('Failed to save problem');
+      setError(err.response?.data?.error || 'Failed to save problem');
       console.error('Save problem error:', err);
     }
   };
@@ -272,19 +312,31 @@ export default function Problems() {
     setProblemDetails(null);
   };
 
+  const getEventName = (eventId) => {
+    const event = events.find(e => e.id === eventId);
+    return event ? event.name : 'Unknown Event';
+  };
+
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">
           Problems Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Problem
-        </Button>
+        <Box>
+          <Tooltip title="Refresh Problems">
+            <IconButton onClick={fetchProblems} sx={{ mr: 2 }}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Problem
+          </Button>
+        </Box>
       </Box>
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -297,7 +349,7 @@ export default function Problems() {
             <TableRow>
               <TableCell>ID</TableCell>
               <TableCell>Title</TableCell>
-              <TableCell>Event Name</TableCell>
+              <TableCell>Event</TableCell>
               <TableCell>Is Junior</TableCell>
               <TableCell>Created At</TableCell>
               <TableCell align="right">Actions</TableCell>
@@ -326,7 +378,7 @@ export default function Problems() {
                 >
                   <TableCell>{problem.id}</TableCell>
                   <TableCell>{problem.title}</TableCell>
-                  <TableCell>{problem.event_name}</TableCell>
+                  <TableCell>{getEventName(problem.event_id)}</TableCell>
                   <TableCell>{problem.is_junior ? 'Yes' : 'No'}</TableCell>
                   <TableCell>{formatDate(problem.created_at)}</TableCell>
                   <TableCell align="right">
@@ -407,6 +459,8 @@ export default function Problems() {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
+              error={!formData.title}
+              helperText={!formData.title ? 'Title is required' : ''}
             />
             
             <Box sx={{ mt: 2, mb: 2 }}>
@@ -445,7 +499,6 @@ export default function Problems() {
               fullWidth
               value={formData.score}
               onChange={(e) => setFormData({ ...formData, score: parseInt(e.target.value) })}
-              required
             />
             <TextField
               margin="dense"
@@ -456,6 +509,8 @@ export default function Problems() {
               value={formData.input_format}
               onChange={(e) => setFormData({ ...formData, input_format: e.target.value })}
               required
+              error={!formData.input_format}
+              helperText={!formData.input_format ? 'Input format is required' : ''}
             />
             <TextField
               margin="dense"
@@ -466,6 +521,8 @@ export default function Problems() {
               value={formData.output_format}
               onChange={(e) => setFormData({ ...formData, output_format: e.target.value })}
               required
+              error={!formData.output_format}
+              helperText={!formData.output_format ? 'Output format is required' : ''}
             />
             <TextField
               margin="dense"
@@ -477,14 +534,25 @@ export default function Problems() {
               onChange={(e) => setFormData({ ...formData, constraints: e.target.value })}
             />
             
-            <TextField
-              margin="dense"
-              label="Event Name"
-              fullWidth
-              value={formData.event_name}
-              onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
-              required
-            />
+            <FormControl fullWidth margin="dense" required error={!formData.event_id}>
+              <InputLabel>Event</InputLabel>
+              <Select
+                value={formData.event_id}
+                onChange={(e) => setFormData({ ...formData, event_id: e.target.value })}
+                label="Event"
+              >
+                {events.map((event) => (
+                  <MenuItem key={event.id} value={event.id}>
+                    {event.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {!formData.event_id && (
+                <Typography color="error" variant="caption">
+                  Event is required
+                </Typography>
+              )}
+            </FormControl>
             <TextField
               margin="dense"
               label="Time Limit (ms)"
@@ -492,7 +560,6 @@ export default function Problems() {
               fullWidth
               value={formData.time_limit}
               onChange={(e) => setFormData({ ...formData, time_limit: parseInt(e.target.value) })}
-              required
             />
             <TextField
               margin="dense"
@@ -501,7 +568,6 @@ export default function Problems() {
               fullWidth
               value={formData.memory_limit}
               onChange={(e) => setFormData({ ...formData, memory_limit: parseInt(e.target.value) })}
-              required
             />
             <FormControl fullWidth margin="dense">
               <InputLabel>Is Junior</InputLabel>
@@ -532,6 +598,8 @@ export default function Problems() {
                     setFormData({ ...formData, samples: newSamples });
                   }}
                   required
+                  error={!sample.input}
+                  helperText={!sample.input ? 'Input is required' : ''}
                 />
                 <TextField
                   margin="dense"
@@ -546,6 +614,8 @@ export default function Problems() {
                     setFormData({ ...formData, samples: newSamples });
                   }}
                   required
+                  error={!sample.output}
+                  helperText={!sample.output ? 'Output is required' : ''}
                 />
                 <TextField
                   margin="dense"

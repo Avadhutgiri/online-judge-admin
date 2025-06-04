@@ -22,6 +22,7 @@ import {
   Code as CodeIcon,
   Assessment as AssessmentIcon,
   Logout as LogoutIcon,
+  Event as EventIcon,
 } from '@mui/icons-material';
 import Cookies from 'js-cookie';
 
@@ -33,6 +34,7 @@ const menuItems = [
   { text: 'Teams', icon: <GroupIcon />, path: '/teams' },
   { text: 'Problems', icon: <CodeIcon />, path: '/problems' },
   { text: 'Submissions', icon: <AssessmentIcon />, path: '/submissions' },
+  { text: 'Events', icon: <EventIcon />, path: '/events' },
 ];
 
 export default function AdminLayout() {
