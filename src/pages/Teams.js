@@ -38,6 +38,7 @@ export default function Teams() {
     try {
       const response = await adminApi.getAllTeams();
       setTeams(response.data.teams);
+      console.log(response.data.teams); 
     } catch (err) {
       setError('Failed to fetch teams');
       console.error('Teams error:', err);
@@ -113,7 +114,7 @@ export default function Teams() {
                   sx={{ cursor: 'pointer' }}
                 >
                   <TableCell>{team.team_name}</TableCell>
-                  <TableCell>{team.event_name}</TableCell>
+                  <TableCell>{team.Event.name}</TableCell>
                   <TableCell>
                     <Chip 
                       label={team.is_junior ? "Junior" : "Senior"} 

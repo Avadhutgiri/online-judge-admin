@@ -100,7 +100,7 @@ export const adminApi = {
 
   // Events
   getAllEvents: () => api.get('users/events'),
-  createEvent: (eventData) => api.get('/admin/event/create', eventData),
+  createEvent: (eventData) => api.post('/admin/event/create', eventData),
   startEvent: (eventData) => api.post(`/admin/event/start`, {
     eventId: eventData.eventId,
     start_time: eventData.start_time,
