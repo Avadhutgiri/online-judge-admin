@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 
 // const API_BASE_URL = 'https://onlinejudge.duckdns.org/api';
 
-const API_BASE_URL = ' https://toylike-nicolette-unsensualistic.ngrok-free.dev';
+const API_BASE_URL = ' https://toylike-nicolette-unsensualistic.ngrok-free.dev/api';
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
